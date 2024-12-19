@@ -16,10 +16,7 @@
   - [ Installation](#-installation)
   - [ Usage](#-usage)
   - [ Testing](#-testing)
-- [ Project Roadmap](#-project-roadmap)
-- [ Contributing](#-contributing)
-- [ License](#-license)
-- [ Acknowledgments](#-acknowledgments)
+
 
 ---
 
@@ -104,4 +101,7 @@ Run the test suite using the following command:
 ❯ pytest
 ```
 
+### Docker
+Build with docker build --tag python-docker .
+Then Run docker run -d -p 3050:3050 --name ai-backend python-docker 
 
