@@ -95,7 +95,7 @@ def predict():
         # Load the image file for prediction
         image = file.read()  # Read the file content
         predicted_label = predict_image(image)
-        return jsonify({"predicted_class": predicted_label})
+        return jsonify({"data": predicted_label})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
