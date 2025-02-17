@@ -51,9 +51,10 @@ transform = v2.Compose([
     v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-def predict_image(image_bytes):
+def predict_image(image_bytes, isSingle=True):
     """
     Predict the class of an image from raw bytes.
+    Returns either the top prediction or all predictions sorted from highest to lowest.
     """
     try:
         # Open the image from the uploaded file content
@@ -69,14 +70,28 @@ def predict_image(image_bytes):
         device = torch.device("cpu")  # Adjust if using GPU
         transformed_image = transformed_image.to(device)
         # print(f"Tensor shape: {transformed_image.shape}")
+
         # Perform inference
         with torch.no_grad():
             outputs = model(transformed_image)
 
-        # Get the predicted class
-        _, predicted_class = torch.max(outputs, 1)
-        predicted_label = LABELS[predicted_class.item()]
-        return {"predicted_class": predicted_label}
+        # Apply softmax to get probabilities
+        probabilities = torch.nn.functional.softmax(outputs, dim=1)[0]
+
+        if isSingle:
+            # Get the predicted class
+            predicted_class = torch.argmax(probabilities).item()
+            predicted_label = LABELS[predicted_class]
+            confidence = probabilities[predicted_class].item()
+            return {"predicted_class": predicted_label, "confidence": confidence}
+        else: 
+            # Get all predictions sorted from highest to lowest
+            sorted_indices = torch.argsort(probabilities, descending=True)
+            predictions = [
+                {"label": LABELS[idx.item()], "confidence": probabilities[idx].item()}
+                for idx in sorted_indices
+            ]
+            return {"predictions": predictions}
     except Exception as e:
         return {"error": f"Error during prediction: {str(e)}"}
 
@@ -98,6 +113,25 @@ def predict():
         return jsonify({"data": predicted_label})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/getPredictions', methods=['POST'])
+def getPredictions():
+    if 'image' not in request.files:
+        return jsonify({"error": "No image uploaded"}), 400
+
+    file = request.files['image']
+
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    
+    try:
+        # Load the image file for prediction
+        image = file.read()  # Read the file content
+        predicted_label = predict_image(image, False)
+        return jsonify({"data": predicted_label})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
     
 # GET endpoint to test api
 @app.route('/hello', methods=['GET', 'POST'])
